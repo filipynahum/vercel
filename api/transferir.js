@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     // Headers reutilizáveis
     const defaultHeaders = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0ZW5hbnRJZCI6MSwicHJvZmlsZSI6ImFkbWluIiwic2Vzc2lvbklkIjoxLCJpYXQiOjE3NDg2OTEyMDgsImV4cCI6MTgxMTc2MzIwOH0.ezipwNuzSjWD7sJufrmx78_38fOrrQtZytjTYx97BvU`
     };
 
     // 1. Buscar o contato e ticket pelo número
@@ -83,7 +83,7 @@ export default async function handler(req, res) {
       headers: defaultHeaders,
       body: JSON.stringify({
         ticketId: ticketAberto.id,
-        queueId: targetQueueId
+        queueId: 5
       }),
       signal: controller.signal
     });

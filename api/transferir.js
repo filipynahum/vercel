@@ -3,10 +3,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Método não permitido' });
   }
 
+  console.log('REQ BODY:', req.body);
+
   const { numero } = req.body;
 
-  if (!numero) {
-    return res.status(400).json({ message: 'Número não enviado' });
+  if (!numero || typeof numero !== 'string') {
+    return res.status(400).json({ message: 'Número inválido ou não enviado' });
   }
 
   try {
@@ -27,7 +29,6 @@ export default async function handler(req, res) {
     });
 
     const result = await response.json();
-
     return res.status(response.status).json(result);
   } catch (error) {
     console.error('Erro ao transferir:', error);

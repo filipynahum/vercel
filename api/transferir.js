@@ -3,50 +3,72 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Método não permitido' });
   }
 
-  console.log('req.body:', req.body);
-
   const { numero } = req.body;
 
   if (!numero || typeof numero !== 'string') {
     return res.status(400).json({ message: 'O campo "numero" precisa ser uma string' });
   }
 
-  // Valida formato 55DDDNUMERO (ex: 5511999999999)
-  if (!/^55\d{10,}$/.test(numero)) {
-    return res.status(400).json({ message: 'Formato inválido. Use 55DDDNUMERO (ex: 5511999999999)' });
-  }
-
   try {
-    const response = await fetch('https://backend.cfcmais.com.br/v2/api/external/6c969e8a-b200-49af-97fc-fbd223267d48', {
+    const token = process.env.API_TOKEN;
+    const externalApiKey = '6c969e8a-b200-49af-97fc-fbd223267d48';
+    const baseUrl = 'https://backend.cfcmais.com.br';
+
+    // 1. Buscar o contato e ticket pelo número
+    const contatoResponse = await fetch(`${baseUrl}/v2/api/external/${externalApiKey}/showcontact`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0ZW5hbnRJZCI6MSwicHJvZmlsZSI6ImFkbWluIiwic2Vzc2lvbklkIjoxLCJpYXQiOjE3NDg2OTEyMDgsImV4cCI6MTgxMTc2MzIwOH0.ezipwNuzSjWD7sJufrmx78_38fOrrQtZytjTYx97BvU`, // Use variável de ambiente!
-        'Key': 'cfcmais-gpt'
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ number: numero })
+    });
+
+    const contatoData = await contatoResponse.json();
+
+    if (!contatoData || !contatoData.tickets || !Array.isArray(contatoData.tickets)) {
+      return res.status(404).json({ message: 'Contato ou tickets não encontrados.' });
+    }
+
+    const ticketAberto = contatoData.tickets.find(t => t.status === 'open');
+
+    if (!ticketAberto) {
+      return res.status(404).json({ message: 'Nenhum ticket aberto encontrado para este número.' });
+    }
+
+    // 2. Trocar a fila do ticket
+    const trocaFilaResponse = await fetch(`${baseUrl}/v2/api/external/${externalApiKey}/updatequeue`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
-        number: numero,
-        queue_id: 5,
-        externalKey: 'cfcmais-gpt'
+        ticketId: ticketAberto.id,
+        queueId: 5 // Fila de matrícula
       })
     });
 
-    const result = await response.json();
-    console.log('API Response:', result);
+    const resultado = await trocaFilaResponse.json();
 
-    if (!response.ok) {
-      return res.status(response.status).json({
-        message: 'Falha na transferência',
-        error: result
+    if (!trocaFilaResponse.ok) {
+      return res.status(trocaFilaResponse.status).json({
+        message: 'Erro ao trocar de fila',
+        error: resultado
       });
     }
 
-    return res.status(200).json(result);
+    return res.status(200).json({
+      message: 'Atendimento transferido com sucesso para a fila de matrícula.',
+      ticket: ticketAberto.id,
+      resultado
+    });
+
   } catch (error) {
-    console.error('Erro ao transferir:', error);
-    return res.status(500).json({ 
-      message: 'Erro interno ao transferir atendimento',
-      error: error.message 
+    console.error('Erro interno:', error);
+    return res.status(500).json({
+      message: 'Erro interno no servidor',
+      error: error.message
     });
   }
 }

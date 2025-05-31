@@ -3,14 +3,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Método não permitido' });
   }
 
-  // Checando o que vem do Postman
   console.log('req.body:', req.body);
 
   const { numero } = req.body;
 
-  // Validando se é string
   if (!numero || typeof numero !== 'string') {
-    return res.status(400).json({ message: 'O campo "numero" precisa ser uma string no formato 55DDDNUMERO' });
+    return res.status(400).json({ message: 'O campo "numero" precisa ser uma string' });
+  }
+
+  // Valida formato 55DDDNUMERO (ex: 5511999999999)
+  if (!/^55\d{10,}$/.test(numero)) {
+    return res.status(400).json({ message: 'Formato inválido. Use 55DDDNUMERO (ex: 5511999999999)' });
   }
 
   try {
@@ -18,22 +21,32 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0ZW5hbnRJZCI6MSwicHJvZmlsZSI6ImFkbWluIiwic2Vzc2lvbklkIjoxLCJpYXQiOjE3NDg2OTEyMDgsImV4cCI6MTgxMTc2MzIwOH0.ezipwNuzSjWD7sJufrmx78_38fOrrQtZytjTYx97BvU',
+        'Authorization': `Bearer ${process.env.API_TOKEN}`, // Use variável de ambiente!
         'Key': 'cfcmais-gpt'
       },
       body: JSON.stringify({
-        body: {
-          number: numero,
-          queue_id: 5,
-          externalKey: 'cfcmais-gpt'
-        }
+        number: numero,
+        queue_id: 5,
+        externalKey: 'cfcmais-gpt'
       })
     });
 
     const result = await response.json();
-    return res.status(response.status).json(result);
+    console.log('API Response:', result);
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        message: 'Falha na transferência',
+        error: result
+      });
+    }
+
+    return res.status(200).json(result);
   } catch (error) {
     console.error('Erro ao transferir:', error);
-    return res.status(500).json({ message: 'Erro ao transferir atendimento', error: error.message });
+    return res.status(500).json({ 
+      message: 'Erro interno ao transferir atendimento',
+      error: error.message 
+    });
   }
 }

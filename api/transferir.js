@@ -18,9 +18,11 @@ export default async function handler(req, res) {
         'Key': 'cfcmais-gpt'
       },
       body: JSON.stringify({
-        number: numero,
-        queue_id: 5,
-        externalKey: 'cfcmais-gpt'
+        body: {
+          number: numero,
+          queue_id: 5,
+          externalKey: 'cfcmais-gpt'
+        }
       })
     });
 

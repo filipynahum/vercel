@@ -3,12 +3,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Método não permitido' });
   }
 
-  console.log('REQ BODY:', req.body);
+  // Checando o que vem do Postman
+  console.log('req.body:', req.body);
 
   const { numero } = req.body;
 
+  // Validando se é string
   if (!numero || typeof numero !== 'string') {
-    return res.status(400).json({ message: 'Número inválido ou não enviado' });
+    return res.status(400).json({ message: 'O campo "numero" precisa ser uma string no formato 55DDDNUMERO' });
   }
 
   try {

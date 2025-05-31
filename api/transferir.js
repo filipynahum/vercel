@@ -19,7 +19,8 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         number: numero,
-        queue_id: 5
+        queue_id: 5,
+        externalKey: 'cfcmais-gpt'
       })
     });
 

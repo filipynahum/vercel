@@ -10,30 +10,30 @@ export default async function handler(req, res) {
   }
 
   try {
-    const BASE_URL = 'https://backend.cfcmais.com.br/v2/api/external/6c969e8a-b200-49af-97fc-fbd223267d48';
-    
-    // 1. Buscar o ticket com POST
-    const buscaContato = await fetch(`${BASE_URL}/showcontact`, {
+    const token = process.env.API_TOKEN;
+    const externalApiKey = '6c969e8a-b200-49af-97fc-fbd223267d48';
+    const baseUrl = 'https://backend.cfcmais.com.br';
+
+    // Adicionando timeout para a requisição
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10 segundos
+
+    // 1. Buscar o contato e ticket pelo número
+    const contatoResponse = await fetch(`${baseUrl}/v2/api/external/${externalApiKey}/showcontact`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Key': 'cfcmais-gpt'
+        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0ZW5hbnRJZCI6MSwicHJvZmlsZSI6ImFkbWluIiwic2Vzc2lvbklkIjoxLCJpYXQiOjE3NDg2OTEyMDgsImV4cCI6MTgxMTc2MzIwOH0.ezipwNuzSjWD7sJufrmx78_38fOrrQtZytjTYx97BvU`,
       },
-      body: JSON.stringify({ number: numero })
-    });
-
-    const contato = await buscaContato.json();
-
-    if (!contato?.ticketId) {
-      return res.status(404).json({ message: 'Ticket não encontrado.' });
-    }
+      body: JSON.stringify({ number: numero }),
+      signal: controller.signal
+    }).finally(() => clearTimeout(timeout));
 
     // 2. Atualizar a fila
-    const trocaFila = await fetch(`${BASE_URL}/updatequeue`, {
+    const trocaFila = await fetch(`${baseUrl}/v2/api/external/${externalApiKey}/updatequeue`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Key': 'cfcmais-gpt'
       },
       body: JSON.stringify({
         ticketId: contato.ticketId,
@@ -56,5 +56,30 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Erro interno:', error);
     return res.status(500).json({ message: 'Erro interno', error: error.message });
+  }
+}
+    
+  } catch (error) {
+    console.error('Erro interno:', error);
+    
+    // Tratamento específico para erros de conexão
+    if (error.code === 'ENOTFOUND') {
+      return res.status(502).json({
+        message: 'Não foi possível conectar ao servidor remoto',
+        error: `Falha na resolução DNS para ${error.hostname}`
+      });
+    }
+    
+    // Tratamento para timeout
+    if (error.name === 'AbortError') {
+      return res.status(504).json({
+        message: 'Tempo limite de conexão excedido'
+      });
+    }
+
+    return res.status(500).json({
+      message: 'Erro interno no servidor',
+      error: error.message
+    });
   }
 }

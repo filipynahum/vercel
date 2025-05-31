@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.API_TOKEN}`, // Use variável de ambiente!
+        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0ZW5hbnRJZCI6MSwicHJvZmlsZSI6ImFkbWluIiwic2Vzc2lvbklkIjoxLCJpYXQiOjE3NDg2OTEyMDgsImV4cCI6MTgxMTc2MzIwOH0.ezipwNuzSjWD7sJufrmx78_38fOrrQtZytjTYx97BvU`, // Use variável de ambiente!
         'Key': 'cfcmais-gpt'
       },
       body: JSON.stringify({
